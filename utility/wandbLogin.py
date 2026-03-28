@@ -11,4 +11,4 @@ def init_wandb():
     if not key:
         raise RuntimeError("Missing WANDB_API_KEY")
 
-    wandb.login(key=key)
+    wandb.login()
