@@ -98,6 +98,9 @@ class StemMashupDataset(Dataset):
         mel_spec = self.mel_transform(audio_mashup)
         log_mel_spec = self.amp_to_db(mel_spec)
 
+        # NOrmalisation
+        log_mel_spec = (log_mel_spec - log_mel_spec.mean()) / (log_mel_spec.std() + 1e-5)
+
         if self.split_type == 'train':
             # These things act as Dropout regularisation in training
             log_mel_spec = self.freq_mask(log_mel_spec)
