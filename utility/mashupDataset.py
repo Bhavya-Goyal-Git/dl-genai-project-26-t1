@@ -5,7 +5,7 @@ import random
 import os
 
 class StemMashupDataset(Dataset):
-    def __init__(self, split_data, split_type, music_dir=None, noise_dir=None, samples_per_genre=15000, sample_rate=32000, n_fft=1024, hop_length=512, n_mels=64,f_min=20, f_max=14000, steps_per_epoch= 15000, val_samples=2000,):
+    def __init__(self, split_data, split_type, music_dir=None, noise_dir=None, samples_per_genre=15000, sample_rate=32000, n_fft=1024, hop_length=512, n_mels=64,f_min=20, f_max=14000, steps_per_epoch= 15000, val_samples=2000, win_length=None):
         
         self.split_type = split_type # 'train' or 'val'
         self.samples_per_genre = samples_per_genre
@@ -31,6 +31,7 @@ class StemMashupDataset(Dataset):
         self.mel_transform = torchaudio.transforms.MelSpectrogram(
             sample_rate=sample_rate,
             n_fft=n_fft,
+            win_length= win_length if win_length else n_fft, # Defaults to n_fft if not provided
             hop_length=hop_length,
             n_mels=n_mels,
             f_min=f_min,
