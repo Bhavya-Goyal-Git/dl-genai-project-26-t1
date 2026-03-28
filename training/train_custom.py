@@ -5,12 +5,30 @@ from torch.utils.data import DataLoader
 import json
 import torch
 import os
+import wandb
+from utility.wandbLogin import init_wandb
 
-NUM_EPOCHS = 100
+NUM_EPOCHS = 200
 CHECKPOINT_DIR = "/kaggle/working/checkpoints"
 
-model = CRNN()
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
+model = CRNN().to(device)
+model_name = "custom"
+
+init_wandb() # Login into W&B
+wandb.init(
+    entity="23f1002830-dl-genai-project",
+    project="dl-genai-project-t12026",
+    group=model_name,
+    name=f"{model_name}_training", # The specific name of this line on the graph
+    config={
+        "architecture": model_name,
+        "epochs": NUM_EPOCHS,
+        "optimizer": "AdamW",
+        "loss_fn": "CrossEntropy_LabelSmoothing_0.1",
+        "scheduler": "ReduceLROnPlateau" if model_name == 'custom' else "OneCycleLR"
+    }
+)
 
 with open("utility/dataset_split.json", "r") as f:
     split_dict = json.load(f)
@@ -53,7 +71,7 @@ os.makedirs(CHECKPOINT_DIR,exist_ok=True)
 
 train_model(
     model=model,
-    model_name="custom",
+    model_name=model_name,
     train_loader=train_loader,
     val_loader=val_loader,
     device=device,

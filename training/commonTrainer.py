@@ -5,6 +5,7 @@ from torch.optim import AdamW
 from torch.optim.lr_scheduler import OneCycleLR, ReduceLROnPlateau
 from trainEpoch import train_epoch
 from valEpoch import validation_epoch
+import wandb
 
 def train_model(
     model, 
@@ -95,6 +96,17 @@ def train_model(
         val_loss, val_acc, val_precision, val_recall, val_f1 = validation_epoch(model, val_loader, criterion, device)
 
         print(f"Epoch [{epoch+1}/{num_epochs}] Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | Val Acc: {val_acc:.4f} | Prec: {val_precision:.4f} | Rec: {val_recall:.4f} | F1: {val_f1:.4f}")
+
+        wandb.log({
+            "epoch": epoch + 1,
+            "train_loss": train_loss,
+            "val_loss": val_loss,
+            "val_f1_macro": val_f1,
+            "val_accuracy": val_acc,
+            "val_precision": val_precision,
+            "val_recall": val_recall,
+            "learning_rate": optimizer.param_groups[0]['lr']
+        })
         
         # Step the epoch_scheduler (used by ReduceLROnPlateau)
         if epoch_scheduler is not None:
@@ -122,4 +134,7 @@ def train_model(
             torch.save(checkpoint_state, os.path.join(checkpoint_dir, f"{model_name}_best.pth"))
 
     print(f"\nTraining Complete! Best {model_name.upper()} Validation F1: {best_val_f1:.4f}")
+
+    wandb.finish()
+    
     return model
