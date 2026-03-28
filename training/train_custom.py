@@ -9,7 +9,7 @@ NUM_EPOCHS = 200
 CHECKPOINT_DIR = "/kaggle/working/checkpoints"
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-model = CRNN().to(device)
+model = CRNN(num_classes=10, n_mels=128).to(device)
 model_name = "custom"
 
 with open("utility/dataset_split.json", "r") as f:

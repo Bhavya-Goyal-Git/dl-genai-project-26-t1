@@ -51,7 +51,7 @@ def train_model(
     
     if model_name == 'custom':
         # Epoch-level scheduler: Drops LR by half if Val Loss stalls for 3 epochs
-        epoch_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3, verbose=True)
+        epoch_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3)
     else:
         # Batch-level scheduler: OneCycleLR needs the max_lr for both parameter groups
         batch_scheduler = OneCycleLR(

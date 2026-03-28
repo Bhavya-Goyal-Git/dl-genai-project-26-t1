@@ -1,6 +1,6 @@
 import torch
 from tqdm import tqdm
-from sklearn.metrics import accuracy_score, precision_recall_f1_score
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 
 def validation_epoch(model, dataloader, criterion, device):
     """
@@ -40,7 +40,7 @@ def validation_epoch(model, dataloader, criterion, device):
     accuracy = accuracy_score(all_labels, all_preds)
     
     # Calculate Macro Precision, Recall, and F1
-    precision, recall, f1, _ = precision_recall_f1_score(
+    precision, recall, f1, _ = precision_recall_fscore_support(
         all_labels, 
         all_preds, 
         average='macro', 
