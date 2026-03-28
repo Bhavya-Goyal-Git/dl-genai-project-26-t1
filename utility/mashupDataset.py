@@ -5,7 +5,7 @@ import random
 import os
 
 class StemMashupDataset(Dataset):
-    def __init__(self, split_data, split_type, music_dir=None, noise_dir=None, samples_per_genre=15000, sample_rate=32000, n_fft=1024, hop_length=512, n_mels=64):
+    def __init__(self, split_data, split_type, music_dir=None, noise_dir=None, samples_per_genre=15000, sample_rate=32000, n_fft=1024, hop_length=512, n_mels=64,f_min=20, f_max=14000):
         
         self.split_type = split_type # 'train' or 'val'
         self.samples_per_genre = samples_per_genre
@@ -22,21 +22,23 @@ class StemMashupDataset(Dataset):
         # time_mask_param=35 means it can mask out chunks of time
         self.time_mask = torchaudio.transforms.TimeMasking(time_mask_param=10)
 
-        # 1. Torchaudio Log Mel Spectrogram setup
+        # Torchaudio Log Mel Spectrogram setup
         self.mel_transform = torchaudio.transforms.MelSpectrogram(
             sample_rate=sample_rate,
             n_fft=n_fft,
             hop_length=hop_length,
-            n_mels=n_mels
+            n_mels=n_mels,
+            f_min=f_min,
+            f_max=f_max
         )
         self.amp_to_db = torchaudio.transforms.AmplitudeToDB(stype='power')
         
-        # 2. Pre-load noise paths (only if training)
+        # Pre-load noise paths (only if training)
         self.noise_paths = []
         if self.split_type == 'train' and noise_dir:
             self.noise_paths = [os.path.join(noise_dir, f) for f in os.listdir(noise_dir) if f.endswith('.pt')]
             
-        # 3. Ensure validation set is FIXED every epoch
+        # Validation set is FIXED every epoch
         self.val_combinations = []
         if self.split_type == 'val':
             # Generate deterministic combinations once during init
