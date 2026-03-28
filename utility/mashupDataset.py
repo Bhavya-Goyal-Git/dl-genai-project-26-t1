@@ -5,7 +5,7 @@ import random
 import os
 
 class StemMashupDataset(Dataset):
-    def __init__(self, split_data, split_type, music_dir=None, noise_dir=None, samples_per_genre=15000, sample_rate=32000, n_fft=1024, hop_length=512, n_mels=64,f_min=20, f_max=14000):
+    def __init__(self, split_data, split_type, music_dir=None, noise_dir=None, samples_per_genre=15000, sample_rate=32000, n_fft=1024, hop_length=512, n_mels=64,f_min=20, f_max=14000, steps_per_epoch= 15000, val_samples=2000,):
         
         self.split_type = split_type # 'train' or 'val'
         self.samples_per_genre = samples_per_genre
@@ -13,6 +13,11 @@ class StemMashupDataset(Dataset):
         self.num_genres = len(self.genres)
         self.total_samples = self.samples_per_genre * self.num_genres
         self.music_dir = music_dir
+
+        if self.split_type == 'train':
+            self.epoch_length = min(steps_per_epoch, self.total_samples)
+        else:
+            self.epoch_length = val_samples
         
         self.genre_songs = split_data[split_type]
         self.stems = ['vocals.pt', 'drums.pt', 'bass.pt', 'other.pt']
@@ -42,7 +47,7 @@ class StemMashupDataset(Dataset):
         self.val_combinations = []
         if self.split_type == 'val':
             # Generate deterministic combinations once during init
-            for i in range(self.total_samples):
+            for i in range(self.epoch_length):
                 genre_idx = i % self.num_genres
                 genre = self.genres[genre_idx]
                 
@@ -51,7 +56,8 @@ class StemMashupDataset(Dataset):
                 self.val_combinations.append((genre, choices))
 
     def __len__(self):
-        return self.total_samples
+        # To prevent massive 150k train in one
+        return self.epoch_length
 
     def __getitem__(self, idx):
         # Interleaving genres ensures exactly equal class distribution in the dataset
