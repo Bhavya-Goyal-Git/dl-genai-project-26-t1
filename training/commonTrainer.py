@@ -6,6 +6,7 @@ from torch.optim.lr_scheduler import OneCycleLR, ReduceLROnPlateau
 from trainEpoch import train_epoch
 from valEpoch import validation_epoch
 import wandb
+from utility.wandbLogin import init_wandb
 
 def train_model(
     model, 
@@ -19,7 +20,8 @@ def train_model(
 ):
     os.makedirs(checkpoint_dir, exist_ok=True)
     model = model.to(device)
-    
+
+    init_wandb() # Login into W&B
 
     # 1. OPTIMIZER & DIFFERENTIAL LEARNING RATES
     if model_name == 'custom':
@@ -69,6 +71,7 @@ def train_model(
     # 4. CHECKPOINT RESUMPTION
     start_epoch = 0
     best_val_f1 = 0.0
+    wandb_id = None # Default to None for a fresh run
     
     if resume_checkpoint and os.path.exists(resume_checkpoint):
         print(f"Resuming from checkpoint: {resume_checkpoint}")
@@ -82,8 +85,24 @@ def train_model(
         start_epoch = checkpoint['epoch'] + 1
         best_val_f1 = checkpoint['best_val_f1']
         scaler.load_state_dict(checkpoint['scaler_state_dict'])
+        wandb_id = checkpoint.get('wandb_id')
         print(f"Resumed at epoch {start_epoch} with Best F1: {best_val_f1:.4f}")
 
+    wandb.init(
+        entity="23f1002830-dl-genai-project",
+        project="dl-genai-project-t12026",
+        group=model_name,              
+        name=f"{model_name}_training",
+        id=wandb_id, # If None, starts a new run. If string, resumes that run!
+        resume="allow", # Tells Wandb not to throw an error if the ID already exists
+        config={
+            "architecture": model_name,
+            "epochs": num_epochs,
+            "optimizer": "AdamW",
+            "loss_fn": "CrossEntropy_LabelSmoothing_0.1",
+            "scheduler": "ReduceLROnPlateau" if model_name == 'custom' else "OneCycleLR"
+        }
+    )
 
     # 5. THE MAIN TRAINING LOOP
     for epoch in range(start_epoch, num_epochs):
@@ -121,7 +140,8 @@ def train_model(
             'scheduler_state_dict': epoch_scheduler.state_dict() if model_name == 'custom' else batch_scheduler.state_dict(),
             'scaler_state_dict': scaler.state_dict(),
             'best_val_f1': best_val_f1,
-            'val_loss': val_loss
+            'val_loss': val_loss,
+            'wandb_id': wandb.run.id
         }
         
         # Save the latest epoch automatically (resume if Kaggle disconnects)
@@ -136,5 +156,5 @@ def train_model(
     print(f"\nTraining Complete! Best {model_name.upper()} Validation F1: {best_val_f1:.4f}")
 
     wandb.finish()
-    
+
     return model
