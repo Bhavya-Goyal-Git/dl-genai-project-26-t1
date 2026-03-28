@@ -17,6 +17,11 @@ class StemMashupDataset(Dataset):
         self.genre_songs = split_data[split_type]
         self.stems = ['vocals.pt', 'drums.pt', 'bass.pt', 'other.pt']
         
+        # freq_mask_param=15 means it can mask up to 5 contiguous mel bins
+        self.freq_mask = torchaudio.transforms.FrequencyMasking(freq_mask_param=5)
+        # time_mask_param=35 means it can mask out chunks of time
+        self.time_mask = torchaudio.transforms.TimeMasking(time_mask_param=10)
+
         # 1. Torchaudio Log Mel Spectrogram setup
         self.mel_transform = torchaudio.transforms.MelSpectrogram(
             sample_rate=sample_rate,
@@ -90,5 +95,10 @@ class StemMashupDataset(Dataset):
         # Convert to Log Mel Spectrogram
         mel_spec = self.mel_transform(audio_mashup)
         log_mel_spec = self.amp_to_db(mel_spec)
+
+        if self.split_type == 'train':
+            # These things act as Dropout regularisation in training
+            log_mel_spec = self.freq_mask(log_mel_spec)
+            log_mel_spec = self.time_mask(log_mel_spec)
         
         return log_mel_spec, genre_idx
