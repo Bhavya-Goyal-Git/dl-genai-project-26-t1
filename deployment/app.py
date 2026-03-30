@@ -6,6 +6,8 @@ from models.cnn14_PANN import PANNs_CNN14
 from models.ASTransformer import AST
 from huggingface_hub import hf_hub_download
 import os
+import librosa
+import numpy as np
 
 GENRE_MAPPING = sorted(['disco', 'metal', 'reggae', 'blues', 'rock', 'classical', 'jazz', 'hiphop', 'country', 'pop'])
 
@@ -36,9 +38,17 @@ class EnsemblePredictor:
         
     def preprocess_audio(self, filepath, sr, n_fft, hop, mels, f_min, f_max, win=None):
         """Dynamic audio processor for both 32kHz and 16kHz pipelines."""
-        waveform, orig_sr = torchaudio.load(filepath)
+
+        waveform_np, orig_sr = librosa.load(filepath, sr=None, mono=False)
         
-        # Convert to mono
+        # librosa returns shape (channels, time) for stereo, or (time,) for mono
+        if waveform_np.ndim == 1:
+            waveform_np = waveform_np[np.newaxis, :] # Force it to be (1, time)
+            
+        # Convert the numpy array directly back into a PyTorch tensor
+        waveform = torch.from_numpy(waveform_np).to(self.device)
+        
+        # Convert to mono if it was stereo
         if waveform.shape[0] > 1:
             waveform = torch.mean(waveform, dim=0, keepdim=True)
             
@@ -93,7 +103,7 @@ class EnsemblePredictor:
         )
         
         with torch.no_grad():
-            with torch.cuda.amp.autocast():
+            with torch.amp.autocast(device_type=self.device):
                 logits_cnn = self.model_cnn14(tensor_cnn)
                 logits_ast = self.model_ast(tensor_ast)
                 
